@@ -1,5 +1,15 @@
 {
   "version": 2,
-  "builds": [{ "src": "addon/server.js", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "addon/server.js" }]
+  "builds": [
+    { "src": "addon/server.js", "use": "@vercel/node" },
+    {
+      "src": "dist/**",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
+  "routes": [
+    { "src": "/configure(.*)", "dest": "/dist/$1" },
+    { "src": "/(.*)", "dest": "addon/server.js" }
+  ]
 }
