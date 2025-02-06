@@ -17,7 +17,9 @@ function generateArrayOfYears(maxYears) {
 }
 
 function setOrderLanguage(language, languagesArray) {
-  const languageObj = languagesArray.find((lang) => lang.iso_639_1 === language);
+  const languageObj = languagesArray.find(
+    (lang) => lang.iso_639_1 === language
+  );
   const fromIndex = languagesArray.indexOf(languageObj);
   const element = languagesArray.splice(fromIndex, 1)[0];
   languagesArray = languagesArray.sort((a, b) => (a.name > b.name ? 1 : -1));
@@ -32,14 +34,22 @@ function loadTranslations(language) {
   return { ...defaultTranslations, ...selectedTranslations };
 }
 
-function createCatalog(id, type, catalogDef, options, tmdbPrefix, translatedCatalogs, showInHome = false) {
+function createCatalog(
+  id,
+  type,
+  catalogDef,
+  options,
+  tmdbPrefix,
+  translatedCatalogs,
+  showInHome = false
+) {
   const extra = [];
 
   if (catalogDef.extraSupported.includes("genre")) {
-    extra.push({ 
-      name: "genre", 
-      options, 
-      ...(showInHome ? {} : { isRequired: true }) 
+    extra.push({
+      name: "genre",
+      options,
+      ...(showInHome ? {} : { isRequired: true }),
     });
   }
   if (catalogDef.extraSupported.includes("search")) {
@@ -52,42 +62,51 @@ function createCatalog(id, type, catalogDef, options, tmdbPrefix, translatedCata
   return {
     id,
     type,
-    name: `${tmdbPrefix ? "TMDB - " : ""}${translatedCatalogs[catalogDef.nameKey]}`,
+    name: `${tmdbPrefix ? "TMDB - " : ""}${
+      translatedCatalogs[catalogDef.nameKey]
+    }`,
     pageSize: 20,
     extra,
     extraSupported: catalogDef.extraSupported,
-    ...(showInHome ? {} : { extraRequired: ["genre"] })
+    ...(showInHome ? {} : { extraRequired: ["genre"] }),
   };
 }
 
 function getCatalogDefinition(catalogId) {
-  const [provider, type] = catalogId.split('.');
-  
+  const [provider, type] = catalogId.split(".");
+
   for (const category of Object.keys(CATALOG_TYPES)) {
     if (CATALOG_TYPES[category][type]) {
       return CATALOG_TYPES[category][type];
     }
   }
-  
+
   return null;
 }
 
-function getOptionsForCatalog(catalogDef, type, showInHome, { years, genres_movie, genres_series, filterLanguages }) {
+function getOptionsForCatalog(
+  catalogDef,
+  type,
+  showInHome,
+  { years, genres_movie, genres_series, filterLanguages }
+) {
   if (catalogDef.defaultOptions) return catalogDef.defaultOptions;
 
   // Cópias dos arrays para evitar modificações diretas
   const movieGenres = showInHome ? [...genres_movie] : ["Top", ...genres_movie];
-  const seriesGenres = showInHome ? [...genres_series] : ["Top", ...genres_series];
-  
+  const seriesGenres = showInHome
+    ? [...genres_series]
+    : ["Top", ...genres_series];
+
   switch (catalogDef.nameKey) {
-    case 'year':
+    case "year":
       return years;
-    case 'language':
+    case "language":
       return filterLanguages;
-    case 'popular':
-      return type === 'movie' ? movieGenres : seriesGenres;
+    case "popular":
+      return type === "movie" ? movieGenres : seriesGenres;
     default:
-      return type === 'movie' ? movieGenres : seriesGenres;
+      return type === "movie" ? movieGenres : seriesGenres;
   }
 }
 
@@ -100,50 +119,62 @@ async function getManifest(config) {
   const translatedCatalogs = loadTranslations(language);
 
   const years = generateArrayOfYears(20);
-  const genres_movie = await getGenreList(language, "movie").then(genres => {
-    const sortedGenres = genres.map(el => el.name).sort();
+  const genres_movie = await getGenreList(language, "movie").then((genres) => {
+    const sortedGenres = (genres || []).map((el) => el.name).sort();
     return sortedGenres;
   });
-  
-  const genres_series = await getGenreList(language, "series").then(genres => {
-    const sortedGenres = genres.map(el => el.name).sort();
-    return sortedGenres;
-  });
-  
+
+  const genres_series = await getGenreList(language, "series").then(
+    (genres) => {
+      const sortedGenres = genres.map((el) => el.name).sort();
+      return sortedGenres;
+    }
+  );
+
   const languagesArray = await getLanguages();
   const filterLanguages = setOrderLanguage(language, languagesArray);
   const options = { years, genres_movie, genres_series, filterLanguages };
 
   const catalogs = userCatalogs
-  .filter(userCatalog => {
-    const catalogDef = getCatalogDefinition(userCatalog.id);
-    if (!catalogDef) return false;
-    if (catalogDef.requiresAuth && !sessionId) return false;
-    return true;
-  })
-  .map(userCatalog => {
-    const catalogDef = getCatalogDefinition(userCatalog.id);
-    const catalogOptions = getOptionsForCatalog(catalogDef, userCatalog.type, userCatalog.showInHome, options);
-    
-    return createCatalog(
-      userCatalog.id,
-      userCatalog.type,
-      catalogDef,
-      catalogOptions,
-      tmdbPrefix,
-      translatedCatalogs,
-      userCatalog.showInHome
-    );
-  });
+    .filter((userCatalog) => {
+      const catalogDef = getCatalogDefinition(userCatalog.id);
+      if (!catalogDef) return false;
+      if (catalogDef.requiresAuth && !sessionId) return false;
+      return true;
+    })
+    .map((userCatalog) => {
+      const catalogDef = getCatalogDefinition(userCatalog.id);
+      const catalogOptions = getOptionsForCatalog(
+        catalogDef,
+        userCatalog.type,
+        userCatalog.showInHome,
+        options
+      );
 
-  const descriptionSuffix = language && language !== DEFAULT_LANGUAGE ? ` with ${language} language.` : ".";
+      return createCatalog(
+        userCatalog.id,
+        userCatalog.type,
+        catalogDef,
+        catalogOptions,
+        tmdbPrefix,
+        translatedCatalogs,
+        userCatalog.showInHome
+      );
+    });
+
+  const descriptionSuffix =
+    language && language !== DEFAULT_LANGUAGE
+      ? ` with ${language} language.`
+      : ".";
 
   return {
     id: packageJson.name,
     version: packageJson.version,
-    favicon: "https://github.com/mrcanelas/tmdb-addon/raw/main/images/favicon.png",
+    favicon:
+      "https://github.com/mrcanelas/tmdb-addon/raw/main/images/favicon.png",
     logo: "https://github.com/mrcanelas/tmdb-addon/raw/main/images/logo.png",
-    background: "https://github.com/mrcanelas/tmdb-addon/raw/main/images/background.png",
+    background:
+      "https://github.com/mrcanelas/tmdb-addon/raw/main/images/background.png",
     name: "The Movie Database Addon",
     description: packageJson.description + descriptionSuffix,
     resources: ["catalog", "meta"],
