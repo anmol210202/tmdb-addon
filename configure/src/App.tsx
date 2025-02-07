@@ -12,8 +12,6 @@ import { Header } from "./components/Header";
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ConfigProvider } from "@/contexts/ConfigContext";
-import { SpeedInsights } from "@vercel/speed-insights/next"; // ✅ Import Speed Insights
-
 const queryClient = new QueryClient();
 
 type Page = "home" | "catalogs" | "integrations" | "others";
@@ -73,7 +71,6 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <SpeedInsights /> {/* ✅ Add Speed Insights Here */}
         <Layout>
           <Home />
         </Layout>
