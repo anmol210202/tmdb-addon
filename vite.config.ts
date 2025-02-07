@@ -5,6 +5,9 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
+  optimizeDeps: {
+    include: ["@vercel/speed-insights/react"], // ✅ Ensure it's included
+  },
   base: "/configure/",
   publicDir: "configure/public", // <== Add this line
   build: {
